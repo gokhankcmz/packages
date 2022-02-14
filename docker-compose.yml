@@ -1,0 +1,51 @@
+version: '3.4'
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+      - "27018:27018"
+      - "27019:27019"
+  consul:
+    image: consul
+    container_name: consul
+    environment:
+      CONSUL_LOCAL_CONFIG: |
+        {
+          "watches": [
+            {
+                "type": "keyprefix",
+                "prefix": "packagesapi/",
+                "handler_type": "http",
+                "http_handler_config": {
+                    "path": "http://packagesapi:80/watch",
+                    "method": "POST",
+                    "timeout": "10s",
+                    "tls_skip_verify": false
+                }
+            }
+          ]
+        }
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+
+  packagesapi:
+    container_name: packagesapi
+    depends_on:
+      - consul
+    build: .
+    ports:
+      - "80:80"
+
+
+
+#
+#        "acl": {
+#          "enabled": true,
+#          "default_policy": "deny",
+#          "enable_token_persistence": true
+#        }
+#      }
