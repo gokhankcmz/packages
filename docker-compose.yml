@@ -16,7 +16,7 @@ services:
           "watches": [
             {
                 "type": "keyprefix",
-                "prefix": "packagesapi/",
+                "prefix": "PackagesApi/",
                 "handler_type": "http",
                 "http_handler_config": {
                     "path": "http://packagesapi:80/watch",

@@ -9,10 +9,20 @@ import (
 	"Packages/src/pkg/Logger/Subject"
 	"Packages/src/pkg/Logger/When"
 	"Packages/src/pkg/Logger/With"
+	"strings"
 )
 
-func GetLogger(config *Configs.AppConfig) *Logger.Logger {
-	logger := Logger.NewLogger(config.ApplicationName).
+var logger *Logger.Logger
+
+func GetLogger() *Logger.Logger {
+	return logger
+}
+func Init(config *Configs.AppConfig) {
+	logger = getDynamicLogger(config)
+}
+
+func getHardCodedLogger(config *Configs.AppConfig) *Logger.Logger {
+	l := Logger.NewLogger(config.ApplicationName).
 		Enrich(
 			With.RequestInfo,
 			With.ResponseInfo,
@@ -25,29 +35,26 @@ func GetLogger(config *Configs.AppConfig) *Logger.Logger {
 		).
 		LogTo(LogTargets.Terminal("level"))
 
-	return logger
+	return l
 }
 
-/*
-func DynamicLogger(configs *Configs.AppConfig) *Logger.Logger {
+func getDynamicLogger(configs *Configs.AppConfig) *Logger.Logger {
 	s := configs.LoggerSettings
-	logger := Logger.NewLogger(configs.ApplicationName).
+	var l = Logger.NewLogger(configs.ApplicationName).
 		Enrich(
 			With.RequestInfoBW(s.PrintRequestInfo),
 			With.ResponseInfoBW(s.PrintResponseInfo),
 		).
 		SetRuleFamily(
-			Rule.ForFamily(Subject.SuccessfulResponses(), When.Pass(s.LogSuccessful.Active), loglevel(s.LogSuccessful.Loglevel), 0),
-			Rule.ForFamily(Subject.SuccessfulResponses(), When.ResponseBodyBiggerThan(s.MaxRespDuration), loglevel(s.LogSuccessful.Loglevel), 1),
+			Rule.ForFamily(Subject.SuccessfulResponses(), When.ResponseTimeBiggerThan(s.MaxRespDuration), loglevel(s.LogSuccessful.Loglevel), 0),
 			Rule.ForFamily(Subject.ClientErrors(), When.Pass(s.LogClientErrors.Active), loglevel(s.LogClientErrors.Loglevel), 0),
 			Rule.ForFamily(Subject.ClientErrors(), When.ResponseTimeBiggerThan(s.MaxRespDuration), LogLevel.Error, 1),
 			Rule.ForFamily(Subject.ServerErrors(), When.Pass(s.LogServerErrors.Active), loglevel(s.LogServerErrors.Loglevel), 0),
 		)
 	if s.LogToTerminal {
-		logger.LogTo(LogTargets.Terminal(s.LogLevelKeyword))
+		l.LogTo(LogTargets.Terminal(s.LogLevelKeyword))
 	}
-
-	return logger
+	return l
 }
 
 func loglevel(level string) LogLevel.Loglevel {
@@ -60,4 +67,3 @@ func loglevel(level string) LogLevel.Loglevel {
 		return LogLevel.None
 	}
 }
-*/

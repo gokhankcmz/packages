@@ -1,16 +1,16 @@
 package Middlewares
 
 import (
+	"Packages/src/api/Logging"
 	"Packages/src/api/Type/ErrorTypes"
-	Logger "Packages/src/pkg/Logger"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
-func PanicHandlerMiddleware(logger *Logger.Logger) echo.MiddlewareFunc {
+func PanicHandlerMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			log := logger.CreateLog().InformRequest(c.Request())
+			log := Logging.GetLogger().CreateLog().InformRequest(c.Request())
 			defer func() {
 				if err := recover(); err != nil {
 					switch v := err.(type) {
@@ -33,6 +33,6 @@ func PanicHandlerMiddleware(logger *Logger.Logger) echo.MiddlewareFunc {
 	}
 }
 
-func UsePanicHandlerMiddleware(e *echo.Echo, logger *Logger.Logger) {
-	e.Use(PanicHandlerMiddleware(logger))
+func UsePanicHandlerMiddleware(e *echo.Echo) {
+	e.Use(PanicHandlerMiddleware())
 }

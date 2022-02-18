@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+//büyük harfle başlamayan, unexported typeler için boş döner.
+
 func GetKVPs(Item interface{}, HierarchySeparator string, BasePrefix string, kvp map[string]string) map[string]string {
 	v := reflect.ValueOf(Item)
 	switch v.Kind() {
@@ -26,7 +28,6 @@ func GetKVPs(Item interface{}, HierarchySeparator string, BasePrefix string, kvp
 }
 
 func _ptr(Item reflect.Value, HierarchySeparator string, prev string, kvp map[string]string) {
-
 	Value := reflect.Indirect(Item)
 	if Value.IsValid() && Value.CanInterface() {
 		GetKVPs(Value.Interface(), HierarchySeparator, prev, kvp)

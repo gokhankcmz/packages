@@ -1,7 +1,7 @@
 package Logger
 
 import (
-	"Packages/src/pkg/KVP"
+	"Packages/src/pkg/KVP/KVP"
 	"Packages/src/pkg/Logger/Event"
 	"net/http"
 	"time"
