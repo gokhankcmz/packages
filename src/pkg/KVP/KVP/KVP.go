@@ -3,6 +3,8 @@ package KVP
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
 )
 
 //büyük harfle başlamayan, unexported typeler için boş döner.
@@ -18,6 +20,8 @@ func GetKVPs(Item interface{}, HierarchySeparator string, BasePrefix string, kvp
 		_map(v, HierarchySeparator, BasePrefix, kvp)
 	case reflect.Array, reflect.Slice:
 		_array(v, HierarchySeparator, BasePrefix, kvp)
+	case reflect.Func:
+		_func(v, BasePrefix, kvp)
 	default:
 		if BasePrefix == "" {
 			BasePrefix = "nil"
@@ -63,6 +67,12 @@ func _array(Input reflect.Value, HierarchySeparator string, prev string, kvp map
 	for i := 0; i < Input.Len(); i++ {
 		GetKVPs(Input.Index(i).Interface(), HierarchySeparator, getKey(prev, HierarchySeparator, fmt.Sprint(i)), kvp)
 	}
+}
+
+func _func(Input reflect.Value, prev string, kvp map[string]string) {
+	fullname := runtime.FuncForPC(Input.Pointer()).Name()
+	pathparts := strings.Split(fullname, "/")
+	kvp[prev] = fmt.Sprint(pathparts[len(pathparts)-1])
 }
 
 func getKey(prev, HierarchySeparator, varName string) string {

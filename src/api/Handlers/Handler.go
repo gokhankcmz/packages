@@ -2,11 +2,14 @@ package Handlers
 
 import (
 	"Packages/src/Configs"
+	"Packages/src/api/Filter"
 	"Packages/src/api/Logging"
+	"Packages/src/api/Middlewares"
 	UserRepository "Packages/src/api/Repository"
 	"Packages/src/api/Type/ErrorTypes"
 	consul "Packages/src/pkg/Consul"
 	"Packages/src/pkg/HealthChecks"
+	KvpConverter "Packages/src/pkg/KVP"
 	"Packages/src/pkg/MongoFilter"
 	"github.com/labstack/echo/v4"
 	"net/http"
@@ -14,32 +17,40 @@ import (
 
 type Handler struct {
 	Repository   UserRepository.IRepository
-	Filter       *MongoFilter.MongoFilter
 	HealthChecks *HealthChecks.ServiceHealth
 	Consul       *consul.Client
+	Filter       *MongoFilter.MongoFilter
+	e            *echo.Echo
+	KvpConverter *KvpConverter.Settings
 }
 
-func NewHandler(e *echo.Echo, repository UserRepository.IRepository, filter *MongoFilter.MongoFilter, hc *HealthChecks.ServiceHealth, client *consul.Client) *Handler {
+func NewHandler(e *echo.Echo, repository UserRepository.IRepository, filter *MongoFilter.MongoFilter, hc *HealthChecks.ServiceHealth, client *consul.Client, kvpConverter *KvpConverter.Settings) *Handler {
 	handler := &Handler{
 		Repository:   repository,
-		Filter:       filter,
 		HealthChecks: hc,
+		Filter:       filter,
 		Consul:       client,
+		e:            e,
+		KvpConverter: kvpConverter,
 	}
-	g := e.Group("/users")
-	g.GET("", handler.GetMany)
-	g.POST("", handler.Create)
-	g.GET("/:id", handler.GetSingle)
-	e.GET("/quickhealth", handler.QuickHealth)
-	e.GET("/health", handler.Health)
-	e.GET("/err", handler.ThrowPanic)
-	e.POST("/watch", handler.Watch)
-	e.GET("/get", handler.Get)
+	handler.SetEndpoints()
+	Middlewares.UsePanicHandlerMiddleware(e)
 	e.HideBanner = true
-
 	return handler
 }
+func (h Handler) SetEndpoints() {
+	g := h.e.Group("/users")
+	g.GET("", h.GetMany)
+	g.POST("", h.Create)
+	g.GET("/:id", h.GetSingle)
 
+	h.e.GET("/quickhealth", h.QuickHealth)
+	h.e.GET("/health", h.Health)
+	h.e.GET("/err", h.ThrowPanic)
+	h.e.POST("/watch", h.Watch)
+	h.e.GET("/get", h.Get)
+
+}
 func (h Handler) QuickHealth(ctx echo.Context) error {
 	res := h.HealthChecks.GetHealthCheckSummary()
 	return ctx.JSON(http.StatusOK, res)
@@ -57,10 +68,12 @@ func (h Handler) ThrowPanic(ctx echo.Context) error {
 func (h Handler) Watch(ctx echo.Context) error {
 	configs := Configs.GetConfigs()
 	configKVP := h.Consul.GetConfigs(configs.ApplicationName)
-	Configs.SetFromConsul(configs.ApplicationName, configKVP)
-
-	Logging.Init(Configs.GetConfigs())
-
+	config := &Configs.AppConfig{}
+	h.KvpConverter.GetObject(config, configKVP)
+	Configs.Set(*config)
+	Logging.Init(configs)
+	h.Filter = Filter.SetDynamicFilter(config)
+	h.SetEndpoints()
 	return nil
 }
 func (h Handler) Get(ctx echo.Context) error {

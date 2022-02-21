@@ -10,10 +10,6 @@ var DefaultConfigs = map[string]AppConfig{
 		ApplicationName:         "PackagesApi",
 		CollectionName:          "Users",
 		MongoConnectionDuration: time.Second * 5,
-		ThisSettingIsAMap: map[string]string{
-			"f1": "v1",
-			"v2": "v2",
-		},
 		LoggerSettings: LoggerSettings{
 			PrintRequestInfo:  true,
 			PrintResponseInfo: true,
@@ -33,6 +29,42 @@ var DefaultConfigs = map[string]AppConfig{
 				Active   bool
 				Loglevel string
 			}{true, "error"},
+		},
+		Filters: []FilterObject{
+			{
+				SourceFieldName: "minupdatedat",
+				Sources:         "Query, Header",
+				FieldType:       "time.RFC3339",
+				ComparisonOp:    "$gte",
+				TargetFieldName: "document.updatedat",
+			},
+		},
+		Searchs: []SearchObject{
+			{
+				SourceFieldName: "name",
+				Sources:         "Query, Header",
+				ComparisonOp:    "i",
+				TargetFieldName: "name",
+			},
+			{
+				SourceFieldName: "email",
+				Sources:         "Query, Header",
+				ComparisonOp:    "i",
+				TargetFieldName: "email",
+			},
+		},
+		PaginationSettings: PaginationSettings{
+			Sources:        "Query, Header",
+			MaxPerPage:     10,
+			DefaultPerPage: 5,
+			PerPageKey:     "perpage",
+			OffSetKey:      "offset",
+		},
+		SortSettings: SortSettings{
+			Sources:            "query,header",
+			AscKey:             "asc",
+			DescKey:            "desc",
+			AcceptedSortFields: []string{"sortage,age", "sortcreationtime,document.createdat"},
 		},
 	},
 }

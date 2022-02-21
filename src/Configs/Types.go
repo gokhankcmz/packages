@@ -1,6 +1,8 @@
 package Configs
 
-import "time"
+import (
+	"time"
+)
 
 type AppConfig struct {
 	AppFirstRun             bool
@@ -10,7 +12,10 @@ type AppConfig struct {
 	ApplicationName         string
 	MongoConnectionDuration time.Duration
 	LoggerSettings          LoggerSettings
-	ThisSettingIsAMap       map[string]string
+	Filters                 []FilterObject
+	Searchs                 []SearchObject
+	PaginationSettings      PaginationSettings
+	SortSettings            SortSettings
 }
 
 type LoggerSettings struct {
@@ -32,4 +37,35 @@ type LoggerSettings struct {
 		Active   bool
 		Loglevel string
 	}
+}
+
+type FilterObject struct {
+	SourceFieldName string
+	Sources         string
+	FieldType       string
+	ComparisonOp    string
+	TargetFieldName string
+}
+
+type SearchObject struct {
+	SourceFieldName string
+	Sources         string
+	ComparisonOp    string
+	TargetFieldName string
+}
+
+type PaginationSettings struct {
+	Sources        string
+	MaxPerPage     int64
+	DefaultPerPage int64
+	PerPageKey     string
+	OffSetKey      string
+	ShowAllKey     string
+}
+
+type SortSettings struct {
+	Sources            string
+	AscKey             string
+	DescKey            string
+	AcceptedSortFields []string
 }

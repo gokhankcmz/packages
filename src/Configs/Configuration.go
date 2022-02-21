@@ -1,8 +1,8 @@
 package Configs
 
 import (
+	"fmt"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -15,7 +15,9 @@ func GetConfigs() *AppConfig {
 func SetDefault(env string) {
 	configurations = DefaultConfigs[env]
 }
-
+func Set(config AppConfig) {
+	configurations = config
+}
 func SetFromConsul(prefix string, kvp map[string]string) *AppConfig {
 	configurations.ApplicationName = kvp[prefix+"/ApplicationName"]
 	configurations.DBName = kvp[prefix+"/DBName"]
@@ -46,33 +48,61 @@ func SetFromConsul(prefix string, kvp map[string]string) *AppConfig {
 	configurations.LoggerSettings.PrintRequestInfo = prqi
 	prpi, _ := strconv.ParseBool(kvp[prefix+"/LoggerSettings/PrintResponseInfo"])
 	configurations.LoggerSettings.PrintResponseInfo = prpi
-	m := map[string]string{}
-	for k, v := range kvp {
-		if strings.Contains(k, prefix+"/ThisSettingIsAMap") {
-			m[k] = v
+
+	//FilterSettings
+	for i := 0; ; i++ {
+		pfx := fmt.Sprintf("%v/Filters/%v", prefix, i)
+		if _, ok := kvp[pfx]; ok {
+			configurations.Filters = append(configurations.Filters, FilterObject{
+				SourceFieldName: kvp[pfx+"SourceFieldName"],
+				Sources:         kvp[pfx+"Sources"],
+				FieldType:       kvp[pfx+"SourceFieldName"],
+				ComparisonOp:    kvp[pfx+"ComparisonOp"],
+				TargetFieldName: kvp[pfx+"TargerFieldName"],
+			})
+		} else {
+			break
 		}
 	}
-	configurations.ThisSettingIsAMap = m
+
+	//SearchSettings
+	for i := 0; ; i++ {
+		pfx := fmt.Sprintf("%v/Searchs/%v", prefix, i)
+		if _, ok := kvp[pfx]; ok {
+			configurations.Searchs = append(configurations.Searchs, SearchObject{
+				SourceFieldName: kvp[pfx+"SourceFieldName"],
+				Sources:         kvp[pfx+"Sources"],
+				ComparisonOp:    kvp[pfx+"ComparisonOp"],
+				TargetFieldName: kvp[pfx+"TargetFieldName"],
+			})
+		} else {
+			break
+		}
+	}
+
+	//PaginationSettings
+	dpp, _ := strconv.ParseInt(kvp[prefix+"/PaginationSettings/DefaultPerPage"], 10, 64)
+	configurations.PaginationSettings.DefaultPerPage = dpp
+	mpp, _ := strconv.ParseInt(kvp[prefix+"/PaginationSettings/MaxPerPage"], 10, 64)
+	configurations.PaginationSettings.MaxPerPage = mpp
+	configurations.PaginationSettings.OffSetKey = kvp[prefix+"/PaginationSettings/OffSetKey"]
+	configurations.PaginationSettings.PerPageKey = kvp[prefix+"/PaginationSettings/PerPageKey"]
+	configurations.PaginationSettings.ShowAllKey = kvp[prefix+"/PaginationSettings/ShowAllKey"]
+	configurations.PaginationSettings.Sources = kvp[prefix+"/PaginationSettings/Sources"]
+
+	//SortSettings
+
+	configurations.SortSettings.Sources = kvp[prefix+"/SortSettings/Sources"]
+	configurations.SortSettings.AscKey = kvp[prefix+"/SortSettings/AscKey"]
+	configurations.SortSettings.DescKey = kvp[prefix+"/SortSettings/DescKey"]
+	for i := 0; ; i++ {
+		pfx := fmt.Sprintf("%v/SortSettings/AcceptedSortFields/%v", prefix, i)
+		if v, ok := kvp[pfx]; ok {
+			configurations.SortSettings.AcceptedSortFields = append(configurations.SortSettings.AcceptedSortFields, v)
+		} else {
+			break
+		}
+	}
 	return &configurations
 
-}
-
-type Test struct {
-	Field1 string
-	Field2 bool
-	Field3 int64
-}
-
-var Testicin Test
-
-func GetTest() *Test {
-	return &Testicin
-}
-
-func SetTest() {
-	Testicin = Test{
-		Field1: "f1",
-		Field2: true,
-		Field3: 5,
-	}
 }

@@ -6,11 +6,10 @@ import (
 	"Packages/src/api/Handlers"
 	"Packages/src/api/HealthChecks"
 	"Packages/src/api/Logging"
-	"Packages/src/api/Middlewares"
 	"Packages/src/api/Mongo"
 	UserRepository "Packages/src/api/Repository"
 	consul "Packages/src/pkg/Consul"
-	"Packages/src/pkg/KVP/KVP"
+	KvpConverter "Packages/src/pkg/KVP"
 	"fmt"
 	"github.com/labstack/echo/v4"
 )
@@ -37,19 +36,18 @@ func main() {
 
 	repo := UserRepository.NewRepository(mongoCollection)
 	health := HealthChecks.GetHealthChecks(mongoClient, config)
-	filter := Filter.GetFilter()
+	filter := Filter.SetHardcodedFilter()
 	consulClient := consul.Init("consul:8500")
-
+	kvpConverter := KvpConverter.New("/", config.ApplicationName)
 	//First run settings
 	if config.AppFirstRun {
 		repo.CreateInitialData(30)
-		configKVP := KVP.GetKVPs(config, "/", config.ApplicationName, map[string]string{})
+		configKVP := kvpConverter.GetKVP(config)
 		for k, v := range configKVP {
 			_ = consulClient.Set(k, v)
 		}
 	}
 
-	Middlewares.UsePanicHandlerMiddleware(e)
-	Handlers.NewHandler(e, repo, filter, health, &consulClient)
+	Handlers.NewHandler(e, repo, filter, health, &consulClient, kvpConverter)
 	e.Start(":80")
 }
